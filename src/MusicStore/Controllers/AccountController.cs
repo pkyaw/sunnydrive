@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using System.Security.Claims;
-using System.Security.Principal;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Hosting;
@@ -445,7 +444,7 @@ namespace MusicStore.Controllers
             var appEnv = Context.RequestServices.GetService<IHostingEnvironment>();
             if (appEnv.EnvironmentName.StartsWith("OpenIdConnect"))
             {
-                Response.SignOut("OpenIdConnect");
+                Context.Authentication.SignOut("OpenIdConnect");
             }
 
             return RedirectToAction("Index", "Home");

@@ -9,27 +9,34 @@ using Microsoft.Framework.Caching.Memory;
 using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
+using Microsoft.Framework.Runtime;
+using MusicStore.Components;
 using MusicStore.Models;
 
 namespace MusicStore
 {
     public class Startup
     {
-        public Startup()
+        private readonly Platform _platform;
+
+        public Startup(IApplicationEnvironment env, IRuntimeEnvironment runtimeEnvironment)
         {
             //Below code demonstrates usage of multiple configuration sources. For instance a setting say 'setting1' is found in both the registered sources, 
             //then the later source will win. By this way a Local config can be overridden by a different setting while deployed remotely.
-            Configuration = new Configuration()
+            Configuration = new Configuration(env.ApplicationBasePath)
                         .AddJsonFile("config.json")
                         .AddEnvironmentVariables(); //All environment variables in the process's context flow in as configuration values.
+
+            _platform = new Platform(runtimeEnvironment);
         }
 
         public IConfiguration Configuration { get; private set; }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            //Sql client not available on mono
-            var useInMemoryStore = Type.GetType("Mono.Runtime") != null;
+            services.Configure<AppSettings>(Configuration.GetConfigurationSection("AppSettings"));
+
+            var useInMemoryStore = _platform.IsRunningOnMono || _platform.IsRunningOnNanoServer;
 
             // Add EF services to the services container
             if (useInMemoryStore)
@@ -76,6 +83,14 @@ namespace MusicStore
                 options.ClientSecret = "GaMQ2hCnqAC6EcDLnXsAeBVIJOLmeutL";
             });
 
+            services.ConfigureCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder.WithOrigins("http://example.com");
+                });
+            });
+
             // Add MVC services to the services container
             services.AddMvc();
 
@@ -89,6 +104,9 @@ namespace MusicStore
             services.AddCaching();
             services.AddSession();
 
+            // Add the system clock service
+            services.AddSingleton<ISystemClock, SystemClock>();
+
             // Configure Auth
             services.Configure<AuthorizationOptions>(options =>
             {
@@ -100,7 +118,7 @@ namespace MusicStore
         //The allowed values are Development,Staging and Production
         public void ConfigureDevelopment(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
+            loggerFactory.AddConsole(minLevel: LogLevel.Warning);
 
             // StatusCode pages to gracefully handle status codes 400-599.
             app.UseStatusCodePagesWithRedirects("~/Home/StatusCodePage");
@@ -123,7 +141,7 @@ namespace MusicStore
         //The allowed values are Development,Staging and Production
         public void ConfigureStaging(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
+            loggerFactory.AddConsole(minLevel: LogLevel.Warning);
 
             // StatusCode pages to gracefully handle status codes 400-599.
             app.UseStatusCodePagesWithRedirects("~/Home/StatusCodePage");
@@ -137,7 +155,7 @@ namespace MusicStore
         //The allowed values are Development,Staging and Production
         public void ConfigureProduction(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
+            loggerFactory.AddConsole(minLevel: LogLevel.Warning);
 
             // StatusCode pages to gracefully handle status codes 400-599.
             app.UseStatusCodePagesWithRedirects("~/Home/StatusCodePage");

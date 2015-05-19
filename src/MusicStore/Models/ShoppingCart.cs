@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Http;
+using Microsoft.Data.Entity;
 
 namespace MusicStore.Models
 {
@@ -146,7 +147,7 @@ namespace MusicStore.Models
             return order.OrderId;
         }
 
-        // We're using HttpContextBase to allow access to cookies.
+        // We're using HttpContextBase to allow access to sessions.
         private string GetCartId(HttpContext context)
         {
             var cartId = context.Session.GetString("Session");

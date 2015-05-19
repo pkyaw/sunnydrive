@@ -5,9 +5,10 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using Microsoft.Data.Entity;
-using Microsoft.Data.Entity.SqlServer;
+using Microsoft.Data.Entity.Relational;
 using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
+using Microsoft.Framework.Runtime;
 
 namespace MusicStore.Models
 {
@@ -21,7 +22,7 @@ namespace MusicStore.Models
         {
             using (var db = serviceProvider.GetService<MusicStoreContext>())
             {
-                var sqlServerDatabase = db.Database as SqlServerDatabase;
+                var sqlServerDatabase = db.Database as RelationalDatabase;
                 if (sqlServerDatabase != null)
                 {
                     if (await sqlServerDatabase.EnsureCreatedAsync())
@@ -86,7 +87,9 @@ namespace MusicStore.Models
         /// <returns></returns>
         private static async Task CreateAdminUser(IServiceProvider serviceProvider)
         {
-            var configuration = new Configuration()
+            var appEnv = serviceProvider.GetService<IApplicationEnvironment>();
+
+            var configuration = new Configuration(appEnv.ApplicationBasePath)
                         .AddJsonFile("config.json")
                         .AddEnvironmentVariables();
 
@@ -100,14 +103,30 @@ namespace MusicStore.Models
             //    await roleManager.CreateAsync(new IdentityRole(adminRole));
             //}
 
-            var user = await userManager.FindByNameAsync(configuration.Get<string>(defaultAdminUserName));
+            var user = await userManager.FindByNameAsync(configuration.Get(defaultAdminUserName));
             if (user == null)
             {
-                user = new ApplicationUser { UserName = configuration.Get<string>(defaultAdminUserName) };
-                await userManager.CreateAsync(user, configuration.Get<string>(defaultAdminPassword));
+                user = new ApplicationUser { UserName = configuration.Get(defaultAdminUserName) };
+                await userManager.CreateAsync(user, configuration.Get(defaultAdminPassword));
                 //await userManager.AddToRoleAsync(user, adminRole);
                 await userManager.AddClaimAsync(user, new Claim("ManageStore", "Allowed"));
             }
+
+#if TESTING
+            var envPerfLab = configuration.Get("PERF_LAB");
+            if (envPerfLab == "true")
+            {
+                for (int i = 0; i < 100; ++i)
+                {
+                    var email = string.Format("User{0:D3}@example.com", i);
+                    var normalUser = await userManager.FindByEmailAsync(email);
+                    if (normalUser == null)
+                    {
+                        await userManager.CreateAsync(new ApplicationUser { UserName = email, Email = email }, "Password~!1");
+                    }
+                }
+            }
+#endif
         }
 
         private static Album[] GetAlbums(string imgUrl, Dictionary<string, Genre> genres, Dictionary<string, Artist> artists)

@@ -1,8 +1,9 @@
-﻿using System.Net.Http;
+﻿#if TESTING
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Http.Core.Collections;
+using Microsoft.AspNet.Http.Internal;
 using Microsoft.AspNet.WebUtilities;
 
 namespace MusicStore.Mocks.MicrosoftAccount
@@ -46,4 +47,5 @@ namespace MusicStore.Mocks.MicrosoftAccount
             return response;
         }
     }
-}
+} 
+#endif

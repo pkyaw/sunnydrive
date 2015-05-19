@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
+using System.IO;
+using System.Linq;
+using Microsoft.AspNet.Server.Testing;
 using Microsoft.Framework.Logging;
 
 namespace E2ETests
@@ -16,28 +16,39 @@ namespace E2ETests
             }
         }
 
-        public static void Retry(Action retryBlock, ILogger logger, int retryCount = 7)
+        public static string GetApplicationPath()
         {
-            for (int retry = 0; retry < retryCount; retry++)
+            return Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "src", "MusicStore"));
+        }
+
+        public static void SetInMemoryStoreForIIS(DeploymentParameters deploymentParameters, ILogger logger)
+        {
+            if (deploymentParameters.ServerType == ServerType.IIS
+                || deploymentParameters.ServerType == ServerType.IISNativeModule)
             {
-                try
+                // Can't use localdb with IIS. Setting an override to use InMemoryStore.
+                logger.LogInformation("Creating configoverride.json file to override default config.");
+
+                string overrideConfig;
+                if (deploymentParameters.PublishWithNoSource)
                 {
-                    logger.LogWarning("Retry count {retryCount}..", retry + 1);
-                    retryBlock();
-                    break; //Went through successfully
+                    var compileRoot = Path.GetFullPath(
+                        Path.Combine(
+                            deploymentParameters.ApplicationPath,
+                            "..", "approot", "packages", "MusicStore"));
+
+                    // We don't know the exact version number with which sources are built.
+                    overrideConfig = Path.Combine(Directory.GetDirectories(compileRoot).First(), "root", "configoverride.json");
                 }
-                catch (AggregateException exception)
+                else
                 {
-                    if (exception.InnerException is HttpRequestException
-#if DNX451
-                        || exception.InnerException is WebException
-#endif
-                        )
-                    {
-                        logger.LogWarning("Failed to complete the request.", exception);
-                        Thread.Sleep(7 * 1000); //Wait for a while before retry.
-                    }
+                    overrideConfig = Path.GetFullPath(
+                        Path.Combine(
+                            deploymentParameters.ApplicationPath,
+                            "..", "approot", "src", "MusicStore", "configoverride.json"));
                 }
+
+                File.WriteAllText(overrideConfig, "{\"UseInMemoryStore\": \"true\"}");
             }
         }
     }

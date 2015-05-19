@@ -6,12 +6,12 @@
     "version": "1.0.0-beta4",
     "compilationOptions": { "warningsAsErrors": true, "define": [ "DEMO", "TESTING" ] },
     "compile": [
-        "**/*.cs",
-        "../../test/E2ETests/compiler/shared/**/*.cs"                   // This code is for testing only.
+        "../../test/E2ETests/compiler/shared/**/*.cs"
     ],
     "publishExclude": "*.cmd",
     "webroot": "wwwroot",
     "dependencies": {
+<<<<<<< HEAD
         "EntityFramework.SqlServer": "7.0.0-beta4",
         "EntityFramework.InMemory": "7.0.0-beta4",                          // For Mono.
         "Kestrel": "1.0.0-beta4",
@@ -34,6 +34,32 @@
         "Microsoft.Framework.CodeGenerators.Mvc": "1.0.0-beta4",
         "Microsoft.Framework.ConfigurationModel.Json": "1.0.0-beta4",
         "Microsoft.Framework.Logging.Console": "1.0.0-beta4"
+=======
+        "EntityFramework.SqlServer": "7.0.0-*",
+        "EntityFramework.InMemory": "7.0.0-*",
+        "Kestrel": "1.0.0-*",
+        "Microsoft.AspNet.Authentication.Cookies": "1.0.0-*",
+        "Microsoft.AspNet.Authentication.Facebook": "1.0.0-*",
+        "Microsoft.AspNet.Authentication.Google": "1.0.0-*",
+        "Microsoft.AspNet.Authentication.MicrosoftAccount": "1.0.0-*",
+        "Microsoft.AspNet.Authentication.OpenIdConnect": "1.0.0-*",
+        "Microsoft.AspNet.Authentication.Twitter": "1.0.0-*",
+        "Microsoft.AspNet.Diagnostics": "1.0.0-*",
+        "Microsoft.AspNet.Diagnostics.Entity": "7.0.0-*",
+        "Microsoft.AspNet.Identity.EntityFramework": "3.0.0-*",
+        "Microsoft.AspNet.Mvc": "6.0.0-*",
+        "Microsoft.AspNet.Mvc.TagHelpers": "6.0.0-*",
+        "Microsoft.AspNet.Server.IIS": "1.0.0-*",
+        "Microsoft.AspNet.Server.WebListener": "1.0.0-*",
+        "Microsoft.AspNet.Session": "1.0.0-*",
+        "Microsoft.AspNet.SignalR.Server": "3.0.0-*",
+        "Microsoft.AspNet.StaticFiles": "1.0.0-*",
+        "Microsoft.AspNet.Tooling.Razor": "1.0.0-*",
+        "Microsoft.Framework.Caching.Distributed": "1.0.0-*",
+        "Microsoft.Framework.CodeGenerators.Mvc": "1.0.0-*",
+        "Microsoft.Framework.ConfigurationModel.Json": "1.0.0-*",
+        "Microsoft.Framework.Logging.Console": "1.0.0-*"
+>>>>>>> d298c9206e064ce94d8e2b8ec1d4d2d63f86c293
     },
     "commands": {
         "gen": "Microsoft.Framework.CodeGeneration",

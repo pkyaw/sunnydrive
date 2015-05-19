@@ -11,20 +11,23 @@ namespace MusicStore
     /// </summary>
     public class Program
     {
+        private readonly IServiceProvider _serviceProvider;
+
+        public Program(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
         public Task<int> Main(string[] args)
         {
             //Add command line configuration source to read command line parameters.
             var config = new Configuration();
             config.AddCommandLine(args);
 
-            var context = new HostingContext()
-            {
-                Configuration = config,
-                ServerFactoryLocation = "Microsoft.AspNet.Server.WebListener",
-                ApplicationName = "MusicStore"
-            };
-
-            using (new HostingEngine().Start(context))
+            using (new WebHostBuilder(_serviceProvider, config)
+                .UseServer("Microsoft.AspNet.Server.WebListener")
+                .Build()
+                .Start())
             {
                 Console.WriteLine("Started the server..");
                 Console.WriteLine("Press any key to stop the server");

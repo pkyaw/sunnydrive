@@ -1,6 +1,5 @@
 using System;
 using System.Security.Claims;
-using System.Security.Principal;
 using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Diagnostics;
@@ -11,7 +10,9 @@ using Microsoft.Framework.Caching.Memory;
 using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
+using Microsoft.Framework.Runtime;
 using Microsoft.Net.Http.Server;
+using MusicStore.Components;
 using MusicStore.Models;
 
 namespace MusicStore
@@ -31,11 +32,11 @@ namespace MusicStore
     /// </summary>
     public class StartupNtlmAuthentication
     {
-        public StartupNtlmAuthentication()
+        public StartupNtlmAuthentication(IApplicationEnvironment env)
         {
             //Below code demonstrates usage of multiple configuration sources. For instance a setting say 'setting1' is found in both the registered sources, 
             //then the later source will win. By this way a Local config can be overridden by a different setting while deployed remotely.
-            Configuration = new Configuration()
+            Configuration = new Configuration(env.ApplicationBasePath)
                         .AddJsonFile("config.json")
                         .AddEnvironmentVariables(); //All environment variables in the process's context flow in as configuration values.
         }
@@ -44,11 +45,21 @@ namespace MusicStore
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AppSettings>(Configuration.GetConfigurationSection("AppSettings"));
+
             // Add EF services to the services container
             services.AddEntityFramework()
                     .AddSqlServer()
                     .AddDbContext<MusicStoreContext>(options =>
                             options.UseSqlServer(Configuration.Get("Data:DefaultConnection:ConnectionString")));
+
+            services.ConfigureCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder.WithOrigins("http://example.com");
+                });
+            });
 
             // Add MVC services to the services container
             services.AddMvc();
@@ -63,6 +74,9 @@ namespace MusicStore
             services.AddCaching();
             services.AddSession();
 
+            // Add the system clock service
+            services.AddSingleton<ISystemClock, SystemClock>();
+
             // Configure Auth
             services.Configure<AuthorizationOptions>(options =>
             {
@@ -72,7 +86,7 @@ namespace MusicStore
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
+            loggerFactory.AddConsole(minLevel: LogLevel.Warning);
 
             app.UseStatusCodePagesWithRedirects("~/Home/StatusCodePage");
 

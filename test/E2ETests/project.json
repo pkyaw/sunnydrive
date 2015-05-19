@@ -6,6 +6,7 @@
         "test": "xunit.runner.aspnet"
     },
     "dependencies": {
+<<<<<<< HEAD
         "Microsoft.AspNet.Server.IIS": "1.0.0-beta4",
         "Microsoft.AspNet.SignalR.Client": "2.1.1",
         "Microsoft.AspNet.Testing": "1.0.0-beta4",
@@ -14,6 +15,14 @@
         "Microsoft.Framework.Runtime.Interfaces": "1.0.0-beta4",
         "Microsoft.Web.Administration": "7.0.0",
         "xunit.runner.aspnet": "2.0.0-aspnet-beta4"
+=======
+        "Microsoft.AspNet.Server.IIS": "1.0.0-*",
+        "Microsoft.AspNet.Server.Testing": "1.0.0-*",
+        "Microsoft.AspNet.SignalR.Client": "2.1.1",
+        "Microsoft.AspNet.WebUtilities": "1.0.0-*",
+        "Microsoft.Framework.Logging.Console": "1.0.0-*",
+        "xunit.runner.aspnet": "2.0.0-aspnet-*"
+>>>>>>> d298c9206e064ce94d8e2b8ec1d4d2d63f86c293
     },
     "frameworks": {
         "dnx451": {

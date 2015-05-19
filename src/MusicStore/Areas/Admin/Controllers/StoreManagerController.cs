@@ -2,10 +2,12 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Cors.Core;
 using Microsoft.AspNet.Mvc;
 using Microsoft.AspNet.Mvc.Rendering;
 using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Infrastructure;
+using Microsoft.Data.Entity;
 using Microsoft.Framework.Caching.Memory;
 using MusicStore.Hubs;
 using MusicStore.Models;
@@ -196,6 +198,7 @@ namespace MusicStore.Areas.Admin.Controllers
         // Note: Added for automated testing purpose. Application does not use this.
         [HttpGet]
         [SkipStatusCodePages]
+        [EnableCors("CorsPolicy")]
         public async Task<IActionResult> GetAlbumIdFromName(string albumName)
         {
             var album = await DbContext.Albums.Where(a => a.Title == albumName).FirstOrDefaultAsync();
@@ -205,7 +208,7 @@ namespace MusicStore.Areas.Admin.Controllers
                 return HttpNotFound();
             }
 
-            return new ContentResult { Content = album.AlbumId.ToString(), ContentType = "text/plain" };
+            return new ContentResult { Content = album.AlbumId.ToString() };
         }
 #endif
     }

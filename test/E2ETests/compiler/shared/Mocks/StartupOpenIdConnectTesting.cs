@@ -1,3 +1,4 @@
+#if TESTING
 using System;
 using Microsoft.AspNet.Authentication.OpenIdConnect;
 using Microsoft.AspNet.Authorization;
@@ -10,29 +11,37 @@ using Microsoft.Framework.Caching.Memory;
 using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
+using Microsoft.Framework.Runtime;
 using MusicStore.Mocks.Common;
 using MusicStore.Mocks.OpenIdConnect;
+using MusicStore.Components;
 using MusicStore.Models;
 
 namespace MusicStore
 {
     public class StartupOpenIdConnectTesting
     {
-        public StartupOpenIdConnectTesting()
+        private readonly IRuntimeEnvironment _runtimeEnvironment;
+
+        public StartupOpenIdConnectTesting(IApplicationEnvironment env, IRuntimeEnvironment runtimeEnvironment)
         {
             //Below code demonstrates usage of multiple configuration sources. For instance a setting say 'setting1' is found in both the registered sources, 
             //then the later source will win. By this way a Local config can be overridden by a different setting while deployed remotely.
-            Configuration = new Configuration()
+            Configuration = new Configuration(env.ApplicationBasePath)
                         .AddJsonFile("config.json")
                         .AddEnvironmentVariables(); //All environment variables in the process's context flow in as configuration values.
+
+            _runtimeEnvironment = runtimeEnvironment;
         }
 
         public IConfiguration Configuration { get; private set; }
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AppSettings>(Configuration.GetConfigurationSection("AppSettings"));
+
             //Sql client not available on mono
-            var useInMemoryStore = Type.GetType("Mono.Runtime") != null;
+            var useInMemoryStore = _runtimeEnvironment.RuntimeType.Equals("Mono", StringComparison.OrdinalIgnoreCase);
 
             // Add EF services to the services container
             if (useInMemoryStore)
@@ -76,6 +85,14 @@ namespace MusicStore
                 };
             });
 
+            services.ConfigureCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder.WithOrigins("http://example.com");
+                });
+            });
+
             // Add MVC services to the services container
             services.AddMvc();
 
@@ -89,6 +106,9 @@ namespace MusicStore
             services.AddCaching();
             services.AddSession();
 
+            // Add the system clock service
+            services.AddSingleton<ISystemClock, SystemClock>();
+
             // Configure Auth
             services.Configure<AuthorizationOptions>(options =>
             {
@@ -98,7 +118,7 @@ namespace MusicStore
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
+            loggerFactory.AddConsole(minLevel: LogLevel.Warning);
 
             app.UseStatusCodePagesWithRedirects("~/Home/StatusCodePage");
 
@@ -151,3 +171,4 @@ namespace MusicStore
         }
     }
 }
+#endif

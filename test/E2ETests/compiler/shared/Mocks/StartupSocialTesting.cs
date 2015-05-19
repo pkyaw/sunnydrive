@@ -1,5 +1,5 @@
-﻿using System;
-using System.IO;
+﻿#if TESTING
+using System;
 using Microsoft.AspNet.Authentication.Facebook;
 using Microsoft.AspNet.Authentication.Google;
 using Microsoft.AspNet.Authentication.MicrosoftAccount;
@@ -15,6 +15,7 @@ using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 using Microsoft.Framework.Runtime;
+using MusicStore.Components;
 using MusicStore.Mocks.Common;
 using MusicStore.Mocks.Facebook;
 using MusicStore.Mocks.Google;
@@ -26,30 +27,31 @@ namespace MusicStore
 {
     public class StartupSocialTesting
     {
-        public StartupSocialTesting(IApplicationEnvironment appEnvironment)
+        private readonly IRuntimeEnvironment _runtimeEnvironment;
+
+        public StartupSocialTesting(IApplicationEnvironment appEnvironment, IRuntimeEnvironment runtimeEnvironment)
         {
             //Below code demonstrates usage of multiple configuration sources. For instance a setting say 'setting1' is found in both the registered sources, 
             //then the later source will win. By this way a Local config can be overridden by a different setting while deployed remotely.
-            Configuration = new Configuration()
+            Configuration = new Configuration(appEnvironment.ApplicationBasePath)
                         .AddJsonFile("config.json")
-                        .AddEnvironmentVariables(); //All environment variables in the process's context flow in as configuration values.
+                        .AddEnvironmentVariables() //All environment variables in the process's context flow in as configuration values.
+                        .AddJsonFile("configoverride.json", optional: true); // Used to override some configuration parameters that cannot be overridden by environment.
 
-            // Used to override some configuration parameters that cannot be overridden by environment.
-            if (File.Exists(Path.Combine(appEnvironment.ApplicationBasePath, "configoverride.json")))
-            {
-                ((Configuration)Configuration).AddJsonFile("configoverride.json");
-            }
+            _runtimeEnvironment = runtimeEnvironment;
         }
 
         public IConfiguration Configuration { get; private set; }
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AppSettings>(Configuration.GetConfigurationSection("AppSettings"));
+
             //Sql client not available on mono
             string value;
             var useInMemoryStore = Configuration.TryGet("UseInMemoryStore", out value) && value == "true" ?
                 true :
-                Type.GetType("Mono.Runtime") != null;
+                _runtimeEnvironment.RuntimeType.Equals("Mono", StringComparison.OrdinalIgnoreCase);
 
             // Add EF services to the services container
             if (useInMemoryStore)
@@ -137,6 +139,14 @@ namespace MusicStore
                 options.Scope.Add("wl.signin");
             });
 
+            services.ConfigureCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder.WithOrigins("http://example.com");
+                });
+            });
+
             // Add MVC services to the services container
             services.AddMvc();
 
@@ -150,6 +160,9 @@ namespace MusicStore
             services.AddCaching();
             services.AddSession();
 
+            // Add the system clock service
+            services.AddSingleton<ISystemClock, SystemClock>();
+
             // Configure Auth
             services.Configure<AuthorizationOptions>(options =>
             {
@@ -159,7 +172,7 @@ namespace MusicStore
 
         public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
+            loggerFactory.AddConsole(minLevel: LogLevel.Warning);
 
             app.UseStatusCodePagesWithRedirects("~/Home/StatusCodePage");
 
@@ -217,3 +230,4 @@ namespace MusicStore
         }
     }
 }
+#endif

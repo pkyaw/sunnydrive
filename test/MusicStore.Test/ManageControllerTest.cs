@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Hosting;
-using Microsoft.AspNet.Http.Authentication;
-using Microsoft.AspNet.Http.Core;
-using Microsoft.AspNet.Http.Core.Authentication;
+using Microsoft.AspNet.Http.Features.Authentication;
+using Microsoft.AspNet.Http.Features.Authentication.Internal;
+using Microsoft.AspNet.Http.Internal;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Mvc;
@@ -30,10 +30,12 @@ namespace MusicStore.Controllers
                     .AddEntityFrameworkStores<MusicStoreContext>();
 
             // IHttpContextAccessor is required for SignInManager, and UserManager
+            var context = new DefaultHttpContext();
+            context.SetFeature<IHttpAuthenticationFeature>(new HttpAuthenticationFeature() { Handler = new TestAuthHandler() });
             services.AddInstance<IHttpContextAccessor>(
                 new HttpContextAccessor()
                     {
-                        HttpContext = new TestHttpContext(),
+                        HttpContext = context,
                     });
 
             _serviceProvider = services.BuildServiceProvider();
@@ -81,13 +83,37 @@ namespace MusicStore.Controllers
             Assert.True(model.HasPassword);
         }
 
-        private class TestHttpContext : DefaultHttpContext
+        private class TestAuthHandler : IAuthenticationHandler
         {
-            public override Task<AuthenticationResult>
-                AuthenticateAsync(string authenticationScheme)
+            public void Authenticate(AuthenticateContext context)
             {
-                return
-                    Task.FromResult(new AuthenticateContext(authenticationScheme).Result);
+                context.NotAuthenticated();
+            }
+
+            public Task AuthenticateAsync(AuthenticateContext context)
+            {
+                context.NotAuthenticated();
+                return Task.FromResult(0);
+            }
+
+            public void Challenge(ChallengeContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void GetDescriptions(DescribeSchemesContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void SignIn(SignInContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void SignOut(SignOutContext context)
+            {
+                throw new NotImplementedException();
             }
         }
     }

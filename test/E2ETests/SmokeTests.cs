@@ -1,240 +1,255 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.AspNet.Server.Testing;
 using Microsoft.AspNet.Testing.xunit;
 using Microsoft.Framework.Logging;
 using Xunit;
 
 namespace E2ETests
 {
-    public partial class SmokeTests
+    // Uses ports ranging 5001 - 5025.
+    public class SmokeTests_X86_Clr
     {
-        private const string CONNECTION_STRING_FORMAT = "Server=(localdb)\\MSSQLLocalDB;Database={0};Trusted_Connection=True;MultipleActiveResultSets=true";
-
-        private string _applicationBaseUrl;
-        private HttpClient _httpClient;
-        private HttpClientHandler _httpClientHandler;
-        private StartParameters _startParameters;
-        private readonly ILogger _logger;
-
-        public SmokeTests()
-        {
-            var loggerFactory = new LoggerFactory();
-            loggerFactory.AddConsole();
-            _logger = loggerFactory.CreateLogger<SmokeTests>();
-        }
-
-        [ConditionalTheory]
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
-        [InlineData(ServerType.IISExpress, RuntimeFlavor.DesktopClr, RuntimeArchitecture.x86, "http://localhost:5001/")]
-        [InlineData(ServerType.WebListener, RuntimeFlavor.DesktopClr, RuntimeArchitecture.x86, "http://localhost:5002/")]
-        [InlineData(ServerType.Kestrel, RuntimeFlavor.DesktopClr, RuntimeArchitecture.x86, "http://localhost:5004/")]
-        [InlineData(ServerType.IISExpress, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5001/")]
-        [InlineData(ServerType.WebListener, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5002/")]
-        [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5004/")]
-        public void SmokeTestSuite_OnX86(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        [InlineData(ServerType.IISExpress, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5001/")]
+        [InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5002/")]
+        //https://github.com/aspnet/MusicStore/issues/488
+        // [InlineData(ServerType.Kestrel, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5003/")]
+        public async Task SmokeTestSuite_OnX86_clr(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
-            SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
+    }
 
-        [ConditionalTheory]
+    public class SmokeTests_X86_Coreclr
+    {
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
+        [InlineData(ServerType.IISExpress, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5004/")]
+        [InlineData(ServerType.WebListener, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5005/")]
+        // [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5006/")]
+        public async Task SmokeTestSuite_OnX86_coreclr(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        {
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
+        }
+    }
+
+    public class SmokeTests_X64
+    {
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
         [SkipOn32BitOS]
-        [InlineData(ServerType.WebListener, RuntimeFlavor.DesktopClr, RuntimeArchitecture.amd64, "http://localhost:5002/")]
-        [InlineData(ServerType.IISExpress, RuntimeFlavor.CoreClr, RuntimeArchitecture.amd64, "http://localhost:5001/")]
-        [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.amd64, "http://localhost:5004/")]
-        public void SmokeTestSuite_OnAMD64(ServerType serverType, RuntimeFlavor donetFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        [InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x64, "http://localhost:5007/")]
+        [InlineData(ServerType.IISExpress, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5008/")]
+        // [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5009/")]
+        public async Task SmokeTestSuite_OnAMD64(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
-            SmokeTestSuite(serverType, donetFlavor, architecture, applicationBaseUrl);
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
+    }
 
-        [ConditionalTheory]
-        [FrameworkSkipCondition(RuntimeFrameworks.DotNet)]
-        [InlineData(ServerType.Kestrel, RuntimeFlavor.Mono, RuntimeArchitecture.x86, "http://localhost:5004/")]
-        public void SmokeTestSuite_OnMono(ServerType serverType, RuntimeFlavor donetFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+    public class SmokeTests_OnMono
+    {
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [FrameworkSkipCondition(RuntimeFrameworks.CLR | RuntimeFrameworks.CoreCLR)]
+        [InlineData(ServerType.Kestrel, RuntimeFlavor.Mono, RuntimeArchitecture.x86, "http://localhost:5010/")]
+        public async Task SmokeTestSuite_OnMono(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
-            SmokeTestSuite(serverType, donetFlavor, architecture, applicationBaseUrl);
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
+    }
 
-        [ConditionalTheory]
-        [SkipIfNativeModuleNotInstalled]
+    public class SmokeTests_OnIIS_NativeModule
+    {
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [SkipIfIISNativeVariationsNotEnabled]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
-        [OSSkipCondition(OperatingSystems.Win7And2008R2 | OperatingSystems.MacOSX | OperatingSystems.Unix)]
+        [OSSkipCondition(OperatingSystems.Win7And2008R2 | OperatingSystems.MacOSX | OperatingSystems.Linux)]
         [SkipIfCurrentRuntimeIsCoreClr]
-        [InlineData(ServerType.IISNativeModule, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5005/")]
-        public void SmokeTestSuite_On_NativeModule_X86(ServerType serverType, RuntimeFlavor donetFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        [InlineData(ServerType.IISNativeModule, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5011/")]
+        public async Task SmokeTestSuite_On_NativeModule_X86(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
-            SmokeTestSuite(serverType, donetFlavor, architecture, applicationBaseUrl);
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
 
-        [ConditionalTheory]
-        [SkipIfNativeModuleNotInstalled]
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [SkipIfIISNativeVariationsNotEnabled]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
-        [OSSkipCondition(OperatingSystems.Win7And2008R2 | OperatingSystems.MacOSX | OperatingSystems.Unix)]
+        [OSSkipCondition(OperatingSystems.Win7And2008R2 | OperatingSystems.MacOSX | OperatingSystems.Linux)]
         [SkipOn32BitOS]
         [SkipIfCurrentRuntimeIsCoreClr]
-        [InlineData(ServerType.IISNativeModule, RuntimeFlavor.CoreClr, RuntimeArchitecture.amd64, "http://localhost:5005/")]
-        public void SmokeTestSuite_On_NativeModule_AMD64(ServerType serverType, RuntimeFlavor donetFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        [InlineData(ServerType.IISNativeModule, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5012/")]
+        public async Task SmokeTestSuite_On_NativeModule_AMD64(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
-            SmokeTestSuite(serverType, donetFlavor, architecture, applicationBaseUrl);
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
+    }
 
-        // [ConditionalTheory]
+    public class SmokeTests_OnIIS
+    {
+        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
-        [OSSkipCondition(OperatingSystems.MacOSX | OperatingSystems.Unix)]
+        [OSSkipCondition(OperatingSystems.MacOSX | OperatingSystems.Linux)]
         [SkipIfCurrentRuntimeIsCoreClr]
-        [InlineData(ServerType.IIS, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5005/")]
-        public void SmokeTestSuite_On_IIS_X86(ServerType serverType, RuntimeFlavor donetFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+        [SkipIfIISVariationsNotEnabled]
+        [InlineData(ServerType.IIS, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5013/")]
+        [InlineData(ServerType.IIS, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5013/")]
+        public async Task SmokeTestSuite_On_IIS_X86(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
         {
-            SmokeTestSuite(serverType, donetFlavor, architecture, applicationBaseUrl);
+            var smokeTestRunner = new SmokeTests();
+            await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl, noSource: true);
         }
+    }
 
-        private void SmokeTestSuite(ServerType serverType, RuntimeFlavor donetFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
+    public class SmokeTests
+    {
+        public async Task SmokeTestSuite(
+            ServerType serverType,
+            RuntimeFlavor donetFlavor,
+            RuntimeArchitecture architecture,
+            string applicationBaseUrl,
+            bool noSource = false)
         {
-            using (_logger.BeginScope("SmokeTestSuite"))
+            var logger = new LoggerFactory()
+                           .AddConsole()
+                           .CreateLogger(string.Format("Smoke:{0}:{1}:{2}", serverType, donetFlavor, architecture));
+
+            using (logger.BeginScope("SmokeTestSuite"))
             {
-                _logger.LogInformation("Variation Details : HostType = {hostType}, DonetFlavor = {flavor}, Architecture = {arch}, applicationBaseUrl = {appBase}",
-                    serverType, donetFlavor, architecture, applicationBaseUrl);
-
-                _startParameters = new StartParameters
-                {
-                    ServerType = serverType,
-                    RuntimeFlavor = donetFlavor,
-                    RuntimeArchitecture = architecture,
-                    EnvironmentName = "SocialTesting"
-                };
-
-                var stopwatch = Stopwatch.StartNew();
                 var musicStoreDbName = Guid.NewGuid().ToString().Replace("-", string.Empty);
 
-                _logger.LogInformation("Pointing MusicStore DB to '{connString}'", string.Format(CONNECTION_STRING_FORMAT, musicStoreDbName));
-
-                //Override the connection strings using environment based configuration
-                Environment.SetEnvironmentVariable("SQLAZURECONNSTR_DefaultConnection", string.Format(CONNECTION_STRING_FORMAT, musicStoreDbName));
-
-                _applicationBaseUrl = applicationBaseUrl;
-                Process hostProcess = null;
-                bool testSuccessful = false;
-
-                try
+                var deploymentParameters = new DeploymentParameters(Helpers.GetApplicationPath(), serverType, donetFlavor, architecture)
                 {
-                    hostProcess = DeploymentUtility.StartApplication(_startParameters, _logger);
-#if DNX451
-                    if (serverType == ServerType.IISNativeModule || serverType == ServerType.IIS)
+                    ApplicationBaseUriHint = applicationBaseUrl,
+                    EnvironmentName = "SocialTesting",
+                    PublishWithNoSource = noSource,
+                    UserAdditionalCleanup = parameters =>
                     {
-                        // Accomodate the vdir name.
-                        _applicationBaseUrl += _startParameters.IISApplication.VirtualDirectoryName + "/";
+                        if (!Helpers.RunningOnMono
+                            && parameters.ServerType != ServerType.IIS
+                            && parameters.ServerType != ServerType.IISNativeModule)
+                        {
+                            // Mono uses InMemoryStore
+                            DbUtils.DropDatabase(musicStoreDbName, logger);
+                        }
                     }
-#endif
-                    _httpClientHandler = new HttpClientHandler();
-                    _httpClient = new HttpClient(_httpClientHandler) { BaseAddress = new Uri(_applicationBaseUrl) };
+                };
 
-                    HttpResponseMessage response = null;
-                    string responseContent = null;
+                // Override the connection strings using environment based configuration
+                deploymentParameters.EnvironmentVariables
+                    .Add(new KeyValuePair<string, string>(
+                        "SQLAZURECONNSTR_DefaultConnection",
+                        string.Format(DbUtils.CONNECTION_STRING_FORMAT, musicStoreDbName)));
 
-                    //Request to base address and check if various parts of the body are rendered & measure the cold startup time.
-                    Helpers.Retry(() =>
-                    {
-                        response = _httpClient.GetAsync(string.Empty).Result;
-                        responseContent = response.Content.ReadAsStringAsync().Result;
-                        _logger.LogInformation("[Time]: Approximate time taken for application initialization : '{t}' seconds", stopwatch.Elapsed.TotalSeconds);
-                    }, logger: _logger);
-
-                    VerifyHomePage(response, responseContent);
-
-                    //Verify the static file middleware can serve static content
-                    VerifyStaticContentServed();
-
-                    //Making a request to a protected resource should automatically redirect to login page
-                    AccessStoreWithoutPermissions();
-
-                    //Register a user - Negative scenario where the Password & ConfirmPassword do not match
-                    RegisterUserWithNonMatchingPasswords();
-
-                    //Register a valid user
-                    var generatedEmail = RegisterValidUser();
-
-                    SignInWithUser(generatedEmail, "Password~1");
-
-                    //Register a user - Negative scenario : Trying to register a user name that's already registered.
-                    RegisterExistingUser(generatedEmail);
-
-                    //Logout from this user session - This should take back to the home page
-                    SignOutUser(generatedEmail);
-
-                    //Sign in scenarios: Invalid password - Expected an invalid user name password error.
-                    SignInWithInvalidPassword(generatedEmail, "InvalidPassword~1");
-
-                    //Sign in scenarios: Valid user name & password.
-                    SignInWithUser(generatedEmail, "Password~1");
-
-                    //Change password scenario
-                    ChangePassword(generatedEmail);
-
-                    //SignIn with old password and verify old password is not allowed and new password is allowed
-                    SignOutUser(generatedEmail);
-                    SignInWithInvalidPassword(generatedEmail, "Password~1");
-                    SignInWithUser(generatedEmail, "Password~2");
-
-                    //Making a request to a protected resource that this user does not have access to - should automatically redirect to login page again
-                    AccessStoreWithoutPermissions(generatedEmail);
-
-                    //Logout from this user session - This should take back to the home page
-                    SignOutUser(generatedEmail);
-
-                    //Login as an admin user
-                    SignInWithUser("Administrator@test.com", "YouShouldChangeThisPassword1!");
-
-                    //Now navigating to the store manager should work fine as this user has the necessary permission to administer the store.
-                    AccessStoreWithPermissions();
-
-                    //Create an album
-                    var albumName = CreateAlbum();
-                    var albumId = FetchAlbumIdFromName(albumName);
-
-                    //Get details of the album
-                    VerifyAlbumDetails(albumId, albumName);
-
-                    //Verify status code pages acts on non-existing items.
-                    VerifyStatusCodePages();
-
-                    //Get the non-admin view of the album.
-                    GetAlbumDetailsFromStore(albumId, albumName);
-
-                    //Add an album to cart and checkout the same
-                    AddAlbumToCart(albumId, albumName);
-                    CheckOutCartItems();
-
-                    //Delete the album from store
-                    DeleteAlbum(albumId, albumName);
-
-                    //Logout from this user session - This should take back to the home page
-                    SignOutUser("Administrator");
-
-                    //Google login
-                    LoginWithGoogle();
-
-                    //Facebook login
-                    LoginWithFacebook();
-
-                    //Twitter login
-                    LoginWithTwitter();
-
-                    //MicrosoftAccountLogin
-                    LoginWithMicrosoftAccount();
-
-                    stopwatch.Stop();
-                    _logger.LogInformation("[Time]: Total time taken for this test variation '{t}' seconds", stopwatch.Elapsed.TotalSeconds);
-                    testSuccessful = true;
-                }
-                finally
+                using (var deployer = ApplicationDeployerFactory.Create(deploymentParameters, logger))
                 {
-                    if (!testSuccessful)
-                    {
-                        _logger.LogError("Some tests failed. Proceeding with cleanup.");
-                    }
+                    var deploymentResult = deployer.Deploy();
+                    Helpers.SetInMemoryStoreForIIS(deploymentParameters, logger);
 
-                    DeploymentUtility.CleanUpApplication(_startParameters, hostProcess, musicStoreDbName, _logger);
+                    var httpClientHandler = new HttpClientHandler();
+                    var httpClient = new HttpClient(httpClientHandler) { BaseAddress = new Uri(deploymentResult.ApplicationBaseUri) };
+
+                    // Request to base address and check if various parts of the body are rendered & measure the cold startup time.
+                    var response = await RetryHelper.RetryRequest(async () =>
+                    {
+                        return await httpClient.GetAsync(string.Empty);
+                    }, logger: logger, cancellationToken: deploymentResult.HostShutdownToken);
+
+                    var validator = new Validator(httpClient, httpClientHandler, logger, deploymentResult);
+
+                    await validator.VerifyHomePage(response);
+
+                    // Verify the static file middleware can serve static content.
+                    await validator.VerifyStaticContentServed();
+
+                    // Making a request to a protected resource should automatically redirect to login page.
+                    await validator.AccessStoreWithoutPermissions();
+
+                    // Register a user - Negative scenario where the Password & ConfirmPassword do not match.
+                    await validator.RegisterUserWithNonMatchingPasswords();
+
+                    // Register a valid user.
+                    var generatedEmail = await validator.RegisterValidUser();
+
+                    await validator.SignInWithUser(generatedEmail, "Password~1");
+
+                    // Register a user - Negative scenario : Trying to register a user name that's already registered.
+                    await validator.RegisterExistingUser(generatedEmail);
+
+                    // Logout from this user session - This should take back to the home page
+                    await validator.SignOutUser(generatedEmail);
+
+                    // Sign in scenarios: Invalid password - Expected an invalid user name password error.
+                    await validator.SignInWithInvalidPassword(generatedEmail, "InvalidPassword~1");
+
+                    // Sign in scenarios: Valid user name & password.
+                    await validator.SignInWithUser(generatedEmail, "Password~1");
+
+                    // Change password scenario
+                    await validator.ChangePassword(generatedEmail);
+
+                    // SignIn with old password and verify old password is not allowed and new password is allowed
+                    await validator.SignOutUser(generatedEmail);
+                    await validator.SignInWithInvalidPassword(generatedEmail, "Password~1");
+                    await validator.SignInWithUser(generatedEmail, "Password~2");
+
+                    // Making a request to a protected resource that this user does not have access to - should automatically redirect to login page again
+                    await validator.AccessStoreWithoutPermissions(generatedEmail);
+
+                    // Logout from this user session - This should take back to the home page
+                    await validator.SignOutUser(generatedEmail);
+
+                    // Login as an admin user
+                    await validator.SignInWithUser("Administrator@test.com", "YouShouldChangeThisPassword1!");
+
+                    // Now navigating to the store manager should work fine as this user has the necessary permission to administer the store.
+                    await validator.AccessStoreWithPermissions();
+
+                    // Create an album
+                    var albumName = await validator.CreateAlbum();
+                    var albumId = await validator.FetchAlbumIdFromName(albumName);
+
+                    // Get details of the album
+                    await validator.VerifyAlbumDetails(albumId, albumName);
+
+                    // Verify status code pages acts on non-existing items.
+                    await validator.VerifyStatusCodePages();
+
+                    // Get the non-admin view of the album.
+                    await validator.GetAlbumDetailsFromStore(albumId, albumName);
+
+                    // Add an album to cart and checkout the same
+                    await validator.AddAlbumToCart(albumId, albumName);
+                    await validator.CheckOutCartItems();
+
+                    // Delete the album from store
+                    await validator.DeleteAlbum(albumId, albumName);
+
+                    // Logout from this user session - This should take back to the home page
+                    await validator.SignOutUser("Administrator");
+
+                    // Google login
+                    await validator.LoginWithGoogle();
+
+                    // Facebook login
+                    await validator.LoginWithFacebook();
+
+                    // Twitter login
+                    await validator.LoginWithTwitter();
+
+                    // MicrosoftAccountLogin
+                    await validator.LoginWithMicrosoftAccount();
+
+                    logger.LogInformation("Variation completed successfully.");
                 }
             }
         }
