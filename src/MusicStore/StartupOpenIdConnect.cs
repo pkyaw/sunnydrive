@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNet.Authentication.Twitter;
 using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Diagnostics;

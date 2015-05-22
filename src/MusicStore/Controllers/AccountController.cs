@@ -1,4 +1,7 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Authorization;
@@ -8,13 +11,13 @@ using Microsoft.AspNet.Mvc;
 using Microsoft.AspNet.Mvc.Rendering;
 using Microsoft.Framework.DependencyInjection;
 using MusicStore.Models;
+using Newtonsoft.Json;
 
 namespace MusicStore.Controllers
 {
     [Authorize]
     public class AccountController : Controller
     {
-
         [FromServices]
         public UserManager<ApplicationUser> UserManager { get; set; }
 
@@ -34,7 +37,7 @@ namespace MusicStore.Controllers
         // POST: /Account/Login
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+        //[ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
             if (!ModelState.IsValid)
@@ -280,11 +283,24 @@ namespace MusicStore.Controllers
             return View();
         }
 
+        [AllowAnonymous]
+        //[ValidateAntiForgeryToken]
+        public ActionResult ExternalLoginTest()
+        {
+
+            // Request a redirect to the external login provider
+            var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = "" });
+            var provider = "Facebook"; //SignInManager.GetExternalAuthenticationSchemes().First().AuthenticationScheme;
+            var properties = SignInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+            return new ChallengeResult(provider, properties);
+        }
+
+
         //
         // POST: /Account/ExternalLogin
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+        //[ValidateAntiForgeryToken]
         public ActionResult ExternalLogin(string provider, string returnUrl = null)
         {
             // Request a redirect to the external login provider
@@ -414,7 +430,7 @@ namespace MusicStore.Controllers
                     await UserManager.AddClaimAsync(user, manageClaim);
                 }
 #endif
-
+                await StoreFacebookTokens(user, info);
                 if (result.Succeeded)
                 {
                     result = await UserManager.AddLoginAsync(user, info);
@@ -429,6 +445,19 @@ namespace MusicStore.Controllers
 
             ViewBag.ReturnUrl = returnUrl;
             return View(model);
+        }
+
+        private async Task StoreFacebookTokens(ApplicationUser user, ExternalLoginInfo info)
+        {
+            var shortToken = info.ExternalPrincipal.Claims.FirstOrDefault(c => c.Type.StartsWith("urn:tokens:facebook"));
+            if (shortToken != null)
+            {
+                var app = new App();
+                var source = new FacebookDataSource(shortToken.Value);
+                app.Sources.Add(source);
+                user.Apps.Add(app);
+                await UserManager.UpdateAsync(user);
+            }
         }
 
         //
