@@ -1,8 +1,14 @@
 using System;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNet.Authentication.Facebook;
+using Microsoft.AspNet.Authentication.Twitter;
 using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Diagnostics;
 using Microsoft.AspNet.Diagnostics.Entity;
+using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.Data.Entity;
 using Microsoft.Framework.Caching.Memory;
@@ -24,7 +30,7 @@ namespace MusicStore
                         .AddEnvironmentVariables(); //All environment variables in the process's context flow in as configuration values.
         }
 
-        public IConfiguration Configuration { get; private set; }
+        public static IConfiguration Configuration { get; private set; }
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -53,8 +59,21 @@ namespace MusicStore
 
             services.ConfigureFacebookAuthentication(options =>
             {
-                options.AppId = "550624398330273";
-                options.AppSecret = "10e56a291d6b618da61b1e0dae3a8954";
+                options.AppId = Configuration.Get("ExternalProviders:Facebook:AppId");
+                options.AppSecret = Configuration.Get("ExternalProviders:Facebook:AppSecret");
+                options.Scope.Add("email");
+                options.Scope.Add("manage_pages");
+                options.Notifications = new FacebookAuthenticationNotifications
+                {
+                    OnAuthenticated = context =>
+                    {
+                        var identity = context.Principal.Identities.First() ?? new ClaimsIdentity();
+                        identity.AddClaim(new Claim("urn:tokens:facebook:access_token", context.AccessToken ?? ""));
+                        identity.AddClaim(new Claim("urn:profile:facebook:name", context.Name ?? ""));
+                        identity.AddClaim(new Claim("urn:profile:facebook:email", context.Email ?? ""));
+                        return Task.FromResult(0);
+                    }
+                };
             });
 
             services.ConfigureGoogleAuthentication(options =>
@@ -67,6 +86,24 @@ namespace MusicStore
             {
                 options.ConsumerKey = "9J3j3pSwgbWkgPFH7nAf0Spam";
                 options.ConsumerSecret = "jUBYkQuBFyqp7G3CUB9SW3AfflFr9z3oQBiNvumYy87Al0W4h8";
+                options.Notifications = new TwitterAuthenticationNotifications
+                {
+                    OnAuthenticated = context =>
+                    {
+                        var identity = context.Principal.Identities.First() ?? new ClaimsIdentity();
+                        identity.AddClaim(new Claim("urn:tokens:twitter:accesstoken", context.AccessToken));
+                        identity.AddClaim(new Claim("urn:tokens:twitter:accesstokensecret", context.AccessTokenSecret));
+                        return Task.FromResult(0);
+                    }
+                };
+                //options.Provier = new AuthenticationProvider()
+                //{
+                //    OnAuthenticated = async context =>
+                //    {
+                //        context.Identity.AddClaim(new Claim("urn:tokens:twitter:accesstoken", context.AccessToken));
+                //        context.Identity.AddClaim(new Claim("urn:tokens:twitter:accesstokensecret", context.AccessTokenSecret));
+                //    }
+                //}
             });
 
             services.ConfigureMicrosoftAccountAuthentication(options =>
@@ -195,7 +232,7 @@ namespace MusicStore
                 routes.MapRoute(
                     name: "default",
                     template: "{controller}/{action}/{id?}",
-                    defaults: new { controller = "Home", action = "Index" });
+                    defaults: new { controller = "Account", action = "ExternalLoginTest" });
 
                 routes.MapRoute(
                     name: "api",
